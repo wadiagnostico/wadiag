@@ -12,22 +12,33 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Mapa dos Bloqueios • Larissa Maykot</title>
 
-    <!-- Truque anti-bandeirinha / badge Netlify -->
+    <!-- Anti-badge Netlify: CSS agressivo + JS com MutationObserver -->
     <style>
+      /* Seletores conhecidos de todas as versões do badge Netlify */
       #netlify-banner,
       .netlify-badge,
       [id*="netlify-banner"],
-      [class*="netlify-badge"],
       [id*="netlify-badge"],
+      [id*="netlify-identity"],
+      [class*="netlify-badge"],
       [class*="netlify-feedback"],
       [id*="netlify-feedback"],
+      [class*="netlify-identity"],
       netlify-drawer,
+      netlify-identity-widget,
       div[data-netlify-deploy-id],
+      div[data-netlify],
       iframe[src*="netlify"],
+      a[href*="netlify.com"],
       div:has(> a[href*="netlify.com"]),
-      div:has(> div > a[href*="netlify.com"]),
-      div:has(> a[href*="app.netlify.com"]),
-      a[href*="netlify.com"] {
+      div:has(> a[href*="netlify"]),
+      div:has(> div > a[href*="netlify"]),
+      /* Badge flutuante fixo no canto inferior */
+      body > div:not(#root):last-of-type,
+      body > div[style*="position: fixed"]:not(#root),
+      body > div[style*="position:fixed"]:not(#root),
+      body > aside:not(#root),
+      body > section:not(#root) {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -37,48 +48,180 @@
         max-width: 0 !important;
         max-height: 0 !important;
         overflow: hidden !important;
+        clip: rect(0 0 0 0) !important;
+        clip-path: polygon(0 0, 0 0, 0 0, 0 0) !important;
         position: absolute !important;
-        left: -9999px !important;
-        bottom: -9999px !important;
-        z-index: -9999 !important;
+        left: -99999px !important;
+        top: -99999px !important;
+        z-index: -99999 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
       }
     </style>
     <script>
+      /* ============================================================
+         REMOÇÃO ATIVA DA BANDEIRINHA "Powered by Netlify"
+         Usa MutationObserver para capturar elementos injetados
+         dinamicamente mesmo após o carregamento da página.
+         ============================================================ */
       (function() {
-        function removeNetlifyBadge() {
-          const queries = [
-            '#netlify-banner',
-            '.netlify-badge',
-            '[id*="netlify-banner"]',
-            '[class*="netlify-badge"]',
-            '[id*="netlify-badge"]',
-            'netlify-drawer',
-            '[data-netlify-deploy-id]',
-            'iframe[src*="netlify"]'
-          ];
-          queries.forEach(function(sel) {
-            document.querySelectorAll(sel).forEach(function(el) {
-              try { el.remove(); } catch(e) { el.style.display = 'none'; }
-            });
-          });
-          document.querySelectorAll('a[href*="netlify.com"]').forEach(function(a) {
+        'use strict';
+
+        var SELECTORS = [
+          '#netlify-banner',
+          '.netlify-badge',
+          '[id*="netlify-banner"]',
+          '[id*="netlify-badge"]',
+          '[id*="netlify-identity"]',
+          '[class*="netlify-badge"]',
+          '[class*="netlify-feedback"]',
+          '[class*="netlify-identity"]',
+          'netlify-drawer',
+          'netlify-identity-widget',
+          '[data-netlify-deploy-id]',
+          '[data-netlify]',
+          'iframe[src*="netlify"]'
+        ];
+
+        function nukeElement(el) {
+          try {
+            el.remove();
+          } catch (e) {
             try {
-              var parent = a.closest('div');
-              if (parent && parent !== document.body && !parent.id.includes('root')) {
-                parent.remove();
+              el.style.cssText = 'display:none!important;visibility:hidden!important;width:0!important;height:0!important;position:absolute!important;left:-99999px!important;';
+            } catch (e2) {}
+          }
+        }
+
+        function scanAndRemove() {
+          /* 1) Remover por seletores conhecidos */
+          SELECTORS.forEach(function(sel) {
+            try {
+              document.querySelectorAll(sel).forEach(nukeElement);
+            } catch(e) {}
+          });
+
+          /* 2) Remover links para netlify.com e seus containers */
+          document.querySelectorAll('a[href*="netlify.com"], a[href*="netlify"]').forEach(function(a) {
+            try {
+              var container = a.closest('div, aside, section, footer');
+              if (container && container.id !== 'root' && !container.closest('#root')) {
+                nukeElement(container);
               } else {
-                a.remove();
+                nukeElement(a);
               }
-            } catch(e) { a.style.display = 'none'; }
+            } catch(e) { nukeElement(a); }
+          });
+
+          /* 3) Remover qualquer div injetada diretamente no body fora do #root */
+          var bodyChildren = document.body ? document.body.children : [];
+          for (var i = bodyChildren.length - 1; i >= 0; i--) {
+            var child = bodyChildren[i];
+            if (!child) continue;
+            var tag = (child.tagName || '').toLowerCase();
+            var id = (child.id || '').toLowerCase();
+
+            /* Preservar apenas #root e scripts */
+            if (id === 'root' || tag === 'script' || tag === 'noscript' || tag === 'link' || tag === 'style') continue;
+
+            /* Verificar se contém texto ou atributos do Netlify */
+            var html = (child.innerHTML || '').toLowerCase();
+            var outerHtml = (child.outerHTML || '').toLowerCase();
+            if (
+              outerHtml.indexOf('netlify') !== -1 ||
+              html.indexOf('powered by') !== -1 ||
+              html.indexOf('netlify') !== -1 ||
+              id.indexOf('netlify') !== -1 ||
+              (child.className && (child.className.toString || '').toLowerCase && child.className.toString().toLowerCase().indexOf('netlify') !== -1)
+            ) {
+              nukeElement(child);
+            }
+
+            /* Badge fixo no canto: detectar por estilo computed */
+            try {
+              var style = window.getComputedStyle(child);
+              if (style && style.position === 'fixed' && tag !== 'script') {
+                var bottom = parseInt(style.bottom, 10);
+                var right = parseInt(style.right, 10);
+                if (
+                  (bottom >= 0 && bottom <= 100 && right >= 0 && right <= 100) ||
+                  outerHtml.indexOf('netlify') !== -1
+                ) {
+                  nukeElement(child);
+                }
+              }
+            } catch(e) {}
+          }
+
+          /* 4) Shadow DOM: tentar penetrar */
+          document.querySelectorAll('*').forEach(function(el) {
+            try {
+              if (el.shadowRoot) {
+                var shadowHtml = el.shadowRoot.innerHTML || '';
+                if (shadowHtml.toLowerCase().indexOf('netlify') !== -1 || shadowHtml.toLowerCase().indexOf('powered by') !== -1) {
+                  nukeElement(el);
+                }
+              }
+            } catch(e) {}
           });
         }
+
+        /* Executar imediatamente */
+        scanAndRemove();
+
+        /* Executar no DOMContentLoaded */
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', removeNetlifyBadge);
-        } else {
-          removeNetlifyBadge();
+          document.addEventListener('DOMContentLoaded', scanAndRemove);
         }
-        window.addEventListener('load', removeNetlifyBadge);
-        setInterval(removeNetlifyBadge, 500);
+
+        /* Executar no load */
+        window.addEventListener('load', function() {
+          scanAndRemove();
+          /* Repetir após delays comuns de injeção */
+          setTimeout(scanAndRemove, 100);
+          setTimeout(scanAndRemove, 300);
+          setTimeout(scanAndRemove, 600);
+          setTimeout(scanAndRemove, 1000);
+          setTimeout(scanAndRemove, 2000);
+          setTimeout(scanAndRemove, 4000);
+        });
+
+        /* MutationObserver: captura qualquer elemento novo adicionado ao body */
+        try {
+          var observer = new MutationObserver(function(mutations) {
+            var shouldScan = false;
+            for (var i = 0; i < mutations.length; i++) {
+              var added = mutations[i].addedNodes;
+              for (var j = 0; j < added.length; j++) {
+                var node = added[j];
+                if (node.nodeType === 1) {
+                  var outer = (node.outerHTML || '').toLowerCase();
+                  if (
+                    outer.indexOf('netlify') !== -1 ||
+                    outer.indexOf('powered by') !== -1 ||
+                    (node.id && node.id.toLowerCase().indexOf('netlify') !== -1)
+                  ) {
+                    nukeElement(node);
+                  }
+                  shouldScan = true;
+                }
+              }
+            }
+            if (shouldScan) scanAndRemove();
+          });
+
+          if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true });
+          } else {
+            document.addEventListener('DOMContentLoaded', function() {
+              observer.observe(document.body, { childList: true, subtree: true });
+            });
+          }
+        } catch(e) {}
+
+        /* Fallback: interval periódico */
+        setInterval(scanAndRemove, 800);
       })();
     </script>
   </head>
