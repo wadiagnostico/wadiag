@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#8B7355" />
+    <meta name="description" content="Mapa dos Bloqueios — Diagnóstico de mentalidade, comportamento e prosperidade" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Mapa dos Bloqueios • Larissa Maykot</title>
+
+    <!-- Truque anti-bandeirinha / badge Netlify -->
+    <style>
+      #netlify-banner,
+      .netlify-badge,
+      [id*="netlify-banner"],
+      [class*="netlify-badge"],
+      [id*="netlify-badge"],
+      [class*="netlify-feedback"],
+      [id*="netlify-feedback"],
+      netlify-drawer,
+      div[data-netlify-deploy-id],
+      iframe[src*="netlify"],
+      div:has(> a[href*="netlify.com"]),
+      div:has(> div > a[href*="netlify.com"]),
+      div:has(> a[href*="app.netlify.com"]),
+      a[href*="netlify.com"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        max-width: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        bottom: -9999px !important;
+        z-index: -9999 !important;
+      }
+    </style>
+    <script>
+      (function() {
+        function removeNetlifyBadge() {
+          const queries = [
+            '#netlify-banner',
+            '.netlify-badge',
+            '[id*="netlify-banner"]',
+            '[class*="netlify-badge"]',
+            '[id*="netlify-badge"]',
+            'netlify-drawer',
+            '[data-netlify-deploy-id]',
+            'iframe[src*="netlify"]'
+          ];
+          queries.forEach(function(sel) {
+            document.querySelectorAll(sel).forEach(function(el) {
+              try { el.remove(); } catch(e) { el.style.display = 'none'; }
+            });
+          });
+          document.querySelectorAll('a[href*="netlify.com"]').forEach(function(a) {
+            try {
+              var parent = a.closest('div');
+              if (parent && parent !== document.body && !parent.id.includes('root')) {
+                parent.remove();
+              } else {
+                a.remove();
+              }
+            } catch(e) { a.style.display = 'none'; }
+          });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', removeNetlifyBadge);
+        } else {
+          removeNetlifyBadge();
+        }
+        window.addEventListener('load', removeNetlifyBadge);
+        setInterval(removeNetlifyBadge, 500);
+      })();
+    </script>
+  </head>
+  <body class="bg-brand-cream text-brand-text">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
